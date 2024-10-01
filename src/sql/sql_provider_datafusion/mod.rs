@@ -319,12 +319,12 @@ impl<T, P> SqlExec<T, P> {
                 self.ident_escaped(&table)
             ),
             TableReference::Full {
-                catalog,
+                // if a full table reference is provided, we don't need to include the catalog
+                catalog: _,
                 schema,
                 table,
             } => format!(
-                "{}.{}.{}",
-                self.ident_escaped(&catalog),
+                "{}.{}",
                 self.ident_escaped(&schema),
                 self.ident_escaped(&table)
             ),
