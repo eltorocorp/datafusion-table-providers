@@ -8,8 +8,9 @@ use datafusion::{
     physical_expr::EquivalenceProperties,
     physical_plan::{
         common,
+        execution_plan::{Boundedness, EmissionType},
         stream::{RecordBatchReceiverStream, RecordBatchStreamAdapter},
-        DisplayAs, DisplayFormatType, ExecutionMode, ExecutionPlan, Partitioning, PlanProperties,
+        DisplayAs, DisplayFormatType, ExecutionPlan, Partitioning, PlanProperties,
     },
 };
 
@@ -59,7 +60,8 @@ impl MockExec {
         PlanProperties::new(
             eq_properties,
             Partitioning::UnknownPartitioning(1),
-            ExecutionMode::Bounded,
+            EmissionType::Both,
+            Boundedness::Bounded,
         )
     }
 }
@@ -68,6 +70,9 @@ impl DisplayAs for MockExec {
     fn fmt_as(&self, t: DisplayFormatType, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match t {
             DisplayFormatType::Default | DisplayFormatType::Verbose => {
+                write!(f, "MockExec")
+            }
+            DisplayFormatType::TreeRender => {
                 write!(f, "MockExec")
             }
         }
