@@ -1,6 +1,8 @@
 use crate::sql::db_connection_pool::{dbconnection::get_schema, JoinPushDown};
 use async_trait::async_trait;
-use datafusion_federation::sql::{SQLExecutor, SQLFederationProvider, SQLTableSource};
+use datafusion_federation::sql::{
+    RemoteTableRef, SQLExecutor, SQLFederationProvider, SQLTableSource,
+};
 use datafusion_federation::{FederatedTableProviderAdaptor, FederatedTableSource};
 use futures::TryStreamExt;
 use snafu::prelude::*;
@@ -16,18 +18,20 @@ use datafusion::{
     sql::{unparser::dialect::Dialect, TableReference},
 };
 
-impl<T, P> SqlTable<T, P> {
+impl<T: std::fmt::Display + std::fmt::Debug, P: std::fmt::Display + std::fmt::Debug>
+    SqlTable<T, P>
+{
     fn create_federated_table_source(
         self: Arc<Self>,
     ) -> DataFusionResult<Arc<dyn FederatedTableSource>> {
-        let table_name = self.table_reference.to_quoted_string();
+        let table_ref = RemoteTableRef::try_from(self.table_reference.to_quoted_string())?;
         let schema = Arc::clone(&self.schema);
         let fed_provider = Arc::new(SQLFederationProvider::new(self));
         Ok(Arc::new(SQLTableSource::new_with_schema(
             fed_provider,
-            table_name,
+            table_ref,
             schema,
-        )?))
+        )))
     }
 
     pub fn create_federated_table_provider(
@@ -42,7 +46,7 @@ impl<T, P> SqlTable<T, P> {
 }
 
 #[async_trait]
-impl<T, P> SQLExecutor for SqlTable<T, P> {
+impl<T: std::fmt::Display, P: std::fmt::Display> SQLExecutor for SqlTable<T, P> {
     fn name(&self) -> &str {
         self.name
     }

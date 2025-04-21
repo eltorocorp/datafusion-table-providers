@@ -7,7 +7,7 @@ use arrow::{
     datatypes::{DataType, Field, Fields, IntervalUnit, Schema, SchemaRef, TimeUnit},
     util::display::array_value_to_string,
 };
-use bigdecimal_0_3_0::BigDecimal;
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, FixedOffset};
 use num_bigint::BigInt;
 use sea_query::{
@@ -16,7 +16,7 @@ use sea_query::{
     QueryBuilder, SimpleExpr, SqliteQueryBuilder, StringLen, Table,
 };
 use snafu::Snafu;
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 use time::{OffsetDateTime, PrimitiveDateTime};
 
 #[derive(Debug, Snafu)]

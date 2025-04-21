@@ -26,11 +26,16 @@ use datafusion::{
     datasource::TableProvider,
     error::{DataFusionError, Result as DataFusionResult},
     execution::TaskContext,
-    logical_expr::{Expr, TableProviderFilterPushDown, TableType},
+    logical_expr::{
+        sqlparser::tokenizer::{Location, Span},
+        Expr, TableProviderFilterPushDown, TableType,
+    },
     physical_expr::EquivalenceProperties,
     physical_plan::{
-        stream::RecordBatchStreamAdapter, DisplayAs, DisplayFormatType, ExecutionMode,
-        ExecutionPlan, Partitioning, PlanProperties, SendableRecordBatchStream,
+        execution_plan::{Boundedness, EmissionType},
+        stream::RecordBatchStreamAdapter,
+        DisplayAs, DisplayFormatType, ExecutionPlan, Partitioning, PlanProperties,
+        SendableRecordBatchStream,
     },
     sql::{sqlparser::ast, unparser::Unparser, TableReference},
 };
@@ -78,7 +83,7 @@ impl Engine {
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SqlTable<T: 'static, P: 'static> {
     name: &'static str,
     pool: Arc<dyn DbConnectionPool<T, P> + Send + Sync>,
@@ -165,7 +170,7 @@ impl<T, P> SqlTable<T, P> {
 }
 
 #[async_trait]
-impl<T, P> TableProvider for SqlTable<T, P> {
+impl<T: std::fmt::Debug, P: std::fmt::Debug> TableProvider for SqlTable<T, P> {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -262,7 +267,8 @@ impl<T, P> SqlExec<T, P> {
             properties: PlanProperties::new(
                 EquivalenceProperties::new(projected_schema),
                 Partitioning::UnknownPartitioning(1),
-                ExecutionMode::Bounded,
+                EmissionType::Both,
+                Boundedness::Bounded,
             ),
             engine,
         })
@@ -340,6 +346,7 @@ impl<T, P> SqlExec<T, P> {
         ast::Expr::Identifier(ast::Ident {
             value: ident.to_string(),
             quote_style,
+            span: Span::new(Location::empty(), Location::empty()),
         })
         .to_string()
     }
@@ -427,11 +434,8 @@ pub fn to_execution_error(
 mod tests {
     use std::{error::Error, sync::Arc};
 
-    use datafusion::execution::context::SessionContext;
     use datafusion::sql::TableReference;
     use tracing::{level_filters::LevelFilter, subscriber::DefaultGuard, Dispatch};
-
-    use crate::sql::sql_provider_datafusion::SqlTable;
 
     fn setup_tracing() -> DefaultGuard {
         let subscriber: tracing_subscriber::FmtSubscriber = tracing_subscriber::fmt()
@@ -471,6 +475,7 @@ mod tests {
             }
         }
 
+        #[derive(Debug)]
         struct MockDBPool {}
 
         #[async_trait]
